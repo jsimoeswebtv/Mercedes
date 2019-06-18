@@ -2,6 +2,7 @@
 using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Interactions;
 using OpenQA.Selenium.Remote;
+using OpenQA.Selenium.Support.UI;
 using System;
 using System.IO;
 using TechTalk.SpecFlow;
@@ -12,50 +13,77 @@ namespace MercedesTesting
     [Binding]
     public class SpecFlowFeature1Steps
     {
-        IWebDriver Browser ;
-      
+        static IWebDriver Browser;
+        static WebDriverWait wait;
 
-        [Given(@"I have entered (.*) into the calculator")]
-        public void GivenIHaveEnteredIntoTheCalculator(int p0)
+        
+
+        [Then(@"we want to close the browser")]
+        public void ThenWeWantToCloseTheBrowser()
         {
-           
+            DisposeDriverService.FinishHim(Browser);
+        }
 
-            var driver = new ChromeDriver(".");
-            Browser = driver;
-            Browser.Manage().Timeouts().ImplicitWait = new TimeSpan(0, 0, 20);
 
+        [Given(@"the browser is open")]
+        public void GivenTheBrowserIsOpen()
+        {
+            Browser = new ChromeDriver(".");
+            Browser.Manage().Timeouts().ImplicitWait = new TimeSpan(0, 0, 30);
+            wait = new WebDriverWait(Browser, new TimeSpan(0, 0, 30));
+            DisposeDriverService.TestRunStartTime = DateTime.Now;
+
+        }
+
+        [Given(@"We have access to mercedes website")]
+        public void GivenWeHaveAccessToMercedesWebsite()
+        {
             Browser.Navigate().GoToUrl("https://shop.mercedes-benz.com/en-gb/collection/");
-
-            Browser.FindElement(By.Id("button-text")).Click();
-            Browser.FindElement(By.LinkText("Collection & accessories")).Click();
-            Browser.FindElement(By.LinkText("Model cars")).Click();
-            Browser.FindElement(By.CssSelector(".col-xs-6:nth-child(1) > .utils-content-carousel-tile-container .dcp-ar3")).Click();
-            Browser.FindElement(By.CssSelector(".col-xs-6:nth-child(6) .responsive-image")).Click();
-            Browser.FindElement(By.CssSelector(".wb-e-btn-1:nth-child(3)")).Click();
-            {
-                IWebElement element = Browser.FindElement(By.CssSelector(".dcp-modal__cta--primary"));
-                Actions builder = new Actions(Browser);
-                builder.MoveToElement(element).Perform();
-            }
-            {
-                IWebElement element = Browser.FindElement(By.TagName("body"));
-                Actions builder = new Actions(Browser);
-                builder.MoveToElement(element, 0, 0).Perform();
-            }
-            Browser.FindElement(By.CssSelector(".dcp-modal__cta--primary")).Click();
-
         }
-        
-        [When(@"I press add")]
-        public void WhenIPressAdd()
+
+        [Then(@"We want to dismiss the cookies disclaimer")]
+        public void ThenWeWantToDismissTheCookiesDisclaimer()
         {
-            
+            WaitScrollToElementAndClick(Browser.FindElement(By.Id("button-text")));
         }
-        
-        [Then(@"the result should be (.*) on the screen")]
-        public void ThenTheResultShouldBeOnTheScreen(int p0)
+
+        [Then(@"we want to click on ""(.*)""")]
+        public void ThenWeWantToClickOn(string linktext)
         {
-           
+            WaitScrollToElementAndClick(Browser.FindElement(By.LinkText(linktext)));
+        }
+
+        [Then(@"we want to scroll and click on ""(.*)""")]
+        public void ThenWeWantToScrollAndClickOn(string text)
+        {
+            WaitScrollToElementAndClick(Browser.FindElement(By.XPath("//*[contains(text(), '"+ text +"')]")));
+        }
+        [Then(@"we want to check the shopping basket")]
+        public void ThenWeWantToCheckTheShoppingBasket()
+        {
+           // WaitScrollToElementAndClick(Browser.FindElement(By.CssSelector(".dcp-modal__cta--primary")));
+           // WaitScrollToElementAndClick(Browser.FindElement(By.TagName("body")));
+            WaitScrollToElementAndClick(Browser.FindElement(By.CssSelector(".dcp-modal__cta--primary")));
+        }
+
+
+        private void WaitScrollToElementAndClick(IWebElement element)
+        {
+            WaitForReady();
+
+            wait.Until(SeleniumExtras.WaitHelpers.ExpectedConditions.ElementToBeClickable(element));
+            Actions actions = new Actions(Browser);
+            actions.MoveToElement(element);
+            actions.Perform();
+            element.Click();
+        }
+
+        private static void WaitForReady()
+        {
+            TimeSpan waitForElement = TimeSpan.FromSeconds(10);
+            WebDriverWait wait = new WebDriverWait(Browser, waitForElement);
+            wait.Until(driver => (bool)((IJavaScriptExecutor)driver).
+                    ExecuteScript("return jQuery.active == 0"));
         }
     }
 }
